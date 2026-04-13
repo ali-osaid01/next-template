@@ -1,0 +1,16 @@
+# CODEOWNERS
+#
+# Code owners are automatically added as PR reviewers.
+# When a code owner opens a PR they can self-approve (no extra review needed)
+# — this is how senior devs get the "1 approval" requirement waived on GitHub.
+#
+# Format: <path pattern>  <@github-username or @org/team>
+#
+# Docs: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# ── Global owners (senior devs) ─────────────────────────────────────────────
+# These users are required reviewers for every PR.
+# They can also self-approve their own PRs.
+#
+# Replace with real GitHub usernames:
+# * @your-org/senior-devs

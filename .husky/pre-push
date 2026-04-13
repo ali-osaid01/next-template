@@ -1,0 +1,58 @@
+#!/bin/sh
+# ─────────────────────────────────────────────────────────────────────────────
+# pre-push
+#
+# 1. Block direct pushes to protected branches (main, dev, staging, uat).
+#    Senior devs listed in .senior-devs (by git email) can bypass this check.
+#    NOTE: local hooks are a convenience guard only — GitHub Branch Protection
+#          is the real enforcement layer. See .github/BRANCH_PROTECTION.md.
+#
+# 2. Run type-check before every push (any branch).
+#    Full lint + build are enforced by CI on the remote.
+# ─────────────────────────────────────────────────────────────────────────────
+
+PROTECTED_BRANCHES="main dev staging uat"
+CURRENT_BRANCH=$(git symbolic-ref --short HEAD 2>/dev/null)
+SENIOR_DEVS_FILE="$(git rev-parse --show-toplevel)/.senior-devs"
+
+# ── 1. Branch protection check ───────────────────────────────────────────────
+for branch in $PROTECTED_BRANCHES; do
+  if [ "$CURRENT_BRANCH" = "$branch" ]; then
+
+    USER_EMAIL=$(git config user.email 2>/dev/null || echo "")
+
+    IS_SENIOR=false
+    if [ -f "$SENIOR_DEVS_FILE" ] && [ -n "$USER_EMAIL" ]; then
+      # Strip comments and blank lines, then check for an exact match
+      if grep -v '^\s*#' "$SENIOR_DEVS_FILE" | grep -v '^\s*$' | grep -qF "$USER_EMAIL"; then
+        IS_SENIOR=true
+      fi
+    fi
+
+    if [ "$IS_SENIOR" = "true" ]; then
+      echo "⚠️  $USER_EMAIL is a senior dev — pushing directly to '$CURRENT_BRANCH'."
+      echo "    Consider using a PR anyway for visibility."
+    else
+      echo ""
+      echo "❌  Direct push to '$CURRENT_BRANCH' is not allowed."
+      echo "    Open a pull request targeting '$CURRENT_BRANCH' instead."
+      echo ""
+      echo "    Senior devs: ask a team lead to add your git email to .senior-devs"
+      echo "    (current git email: ${USER_EMAIL:-not set})"
+      echo ""
+      exit 1
+    fi
+
+  fi
+done
+
+# ── 2. Type-check ─────────────────────────────────────────────────────────────
+echo "▶ Running type-check..."
+npm run type-check
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌  Type errors found. Fix them before pushing."
+  exit 1
+fi
+
+echo "✓ Pre-push checks passed."
